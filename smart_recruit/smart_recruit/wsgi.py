@@ -11,6 +11,7 @@ import os
 
 from django.core.wsgi import get_wsgi_application
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'smart_recruit.smart_recruit.settings')
+# Update this to use the correct module path
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'smart_recruit.settings')
 
 application = get_wsgi_application()
