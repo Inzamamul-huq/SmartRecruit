@@ -34,7 +34,7 @@ DEBUG = env('DEBUG')
 
 ALLOWED_HOSTS = [
         'smartrecruit-9ofm.onrender.com', 
-        'smart-angular-csc32mpoe-inzamamuls-projects-6955e9a3.vercel.app'
+        'smartjobangular.vercel.app'
     ]
   # For production, specify your domain like: ['your-render-app.onrender.com']
 
@@ -83,7 +83,7 @@ SIMPLE_JWT = {
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
     'https://smartrecruit-9ofm.onrender.com',
-    'https://smart-angular-csc32mpoe-inzamamuls-projects-6955e9a3.vercel.app'
+    'https://smartjobangular.vercel.app'
 ]
 
 # For development, you can keep this True, but for production, it's better to use CORS_ALLOWED_ORIGINS
@@ -224,7 +224,7 @@ if not DEBUG:
      # Security settings for production
     CSRF_TRUSTED_ORIGINS = [
         'https://smartrecruit-9ofm.onrender.com', 
-        'https://smart-angular-csc32mpoe-inzamamuls-projects-6955e9a3.vercel.app'
+        'https://smartjobangular.vercel.app/'
     ]
 
 # Database connection persistence
