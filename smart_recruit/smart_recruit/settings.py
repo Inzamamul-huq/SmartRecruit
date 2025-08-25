@@ -79,7 +79,8 @@ SIMPLE_JWT = {
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',  # Local development
-    'http://localhost:5173',
+    'http://localhost:4200',
+
       # Common Vite dev server port
     'https://smartrecruit-l27g.onrender.com',  # Your Render backend URL
     # Add your Vercel frontend URL here when you have it
@@ -220,7 +221,7 @@ if not DEBUG:
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
     
-    # Security settings for production
+     # Security settings for production
     CSRF_TRUSTED_ORIGINS = [
         'https://smartrecruit-l27g.onrender.com',  # Your Render backend URL
         # Add your Vercel frontend URL here when you have it
