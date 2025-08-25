@@ -31,8 +31,11 @@ environ.Env.read_env()
 SECRET_KEY = env('SECRET_KEY') 
 DEBUG = env('DEBUG')
 
-# In production, replace with your actual domain
-ALLOWED_HOSTS = ['*']  # For production, specify your domain like: ['your-render-app.onrender.com']
+
+ALLOWED_HOSTS = [
+    'https://smart-angular-csc32mpoe-inzamamuls-projects-6955e9a3.vercel.app',
+    'https://smartrecruit-l27g.onrender.com',
+]  # For production, specify your domain like: ['your-render-app.onrender.com']
 
 
 # Application definition
@@ -78,12 +81,8 @@ SIMPLE_JWT = {
 # CORS settings
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
-    'http://localhost:3000',  # Local development
-    'http://localhost:4200',
-
-      # Common Vite dev server port
-    'https://smartrecruit-l27g.onrender.com',  # Your Render backend URL
-    # Add your Vercel frontend URL here when you have it
+    'https://smart-angular-csc32mpoe-inzamamuls-projects-6955e9a3.vercel.app',
+    'https://smartrecruit-l27g.onrender.com', 
 ]
 
 # For development, you can keep this True, but for production, it's better to use CORS_ALLOWED_ORIGINS
@@ -223,8 +222,8 @@ if not DEBUG:
     
      # Security settings for production
     CSRF_TRUSTED_ORIGINS = [
-        'https://smartrecruit-l27g.onrender.com',  # Your Render backend URL
-        # Add your Vercel frontend URL here when you have it
+        'https://smartrecruit-l27g.onrender.com', 
+        'https://smart-angular-csc32mpoe-inzamamuls-projects-6955e9a3.vercel.app'
     ]
 
 # Database connection persistence
