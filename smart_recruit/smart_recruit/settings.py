@@ -33,8 +33,8 @@ DEBUG = env('DEBUG')
 
 
 ALLOWED_HOSTS = [
-        'https://smartrecruit-9ofm.onrender.com', 
-        'https://smart-angular-csc32mpoe-inzamamuls-projects-6955e9a3.vercel.app'
+        'smartrecruit-9ofm.onrender.com', 
+        'smart-angular-csc32mpoe-inzamamuls-projects-6955e9a3.vercel.app'
     ]
   # For production, specify your domain like: ['your-render-app.onrender.com']
 
