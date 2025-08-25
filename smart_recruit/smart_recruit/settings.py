@@ -32,10 +32,7 @@ SECRET_KEY = env('SECRET_KEY')
 DEBUG = env('DEBUG')
 
 
-ALLOWED_HOSTS = [
-    'https://smart-angular-csc32mpoe-inzamamuls-projects-6955e9a3.vercel.app',
-    'https://smartrecruit-l27g.onrender.com',
-]  # For production, specify your domain like: ['your-render-app.onrender.com']
+ALLOWED_HOSTS = ['*']  # For production, specify your domain like: ['your-render-app.onrender.com']
 
 
 # Application definition
@@ -80,10 +77,6 @@ SIMPLE_JWT = {
 
 # CORS settings
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOWED_ORIGINS = [
-    'https://smart-angular-csc32mpoe-inzamamuls-projects-6955e9a3.vercel.app',
-    'https://smartrecruit-l27g.onrender.com', 
-]
 
 # For development, you can keep this True, but for production, it's better to use CORS_ALLOWED_ORIGINS
 CORS_ALLOW_ALL_ORIGINS = DEBUG  # Only allow all origins in DEBUG mode
@@ -208,26 +201,6 @@ FILE_UPLOAD_DIRECTORY_PERMISSIONS = 0o755
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Security settings for production
-if not DEBUG:
-    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-    SECURE_SSL_REDIRECT = True
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
-    SECURE_BROWSER_XSS_FILTER = True
-    SECURE_CONTENT_TYPE_NOSNIFF = True
-    SECURE_HSTS_SECONDS = 31536000  # 1 year
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
-    
-     # Security settings for production
-    CSRF_TRUSTED_ORIGINS = [
-        'https://smartrecruit-l27g.onrender.com', 
-        'https://smart-angular-csc32mpoe-inzamamuls-projects-6955e9a3.vercel.app'
-    ]
-
-# Database connection persistence
-DATABASES['default']['CONN_MAX_AGE'] = 500
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
