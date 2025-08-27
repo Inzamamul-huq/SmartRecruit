@@ -7,10 +7,13 @@ from rest_framework import status
 from .models import *
 from .serializers import *
 import random
+
 from django.core.mail import send_mail
 from django.conf import settings
 import os
 from rest_framework.parsers import MultiPartParser
+from django.conf import settings
+from smart_recruit.supabase_storage import upload_file
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
 
@@ -303,6 +306,45 @@ def apply_for_job(request, job_id):
         student = get_object_or_404(Student, id=student_id)
         job = get_object_or_404(Job, id=job_id)
         
+        
+        from datetime import datetime, timedelta
+        from django.utils import timezone
+        from interview_questions.models import InterviewExperience
+        
+        
+        recent_opportunity = JobOpportunity.objects.filter(
+            student_email=student.email,
+            job_date__lte=timezone.now().date()
+        ).order_by('-job_date').first()
+        
+        if recent_opportunity:
+            job_datetime = timezone.make_aware(
+                datetime.combine(recent_opportunity.job_date, datetime.min.time())
+            )
+            
+            
+            has_experience = InterviewExperience.objects.filter(
+                student_email=student.email,
+                job=recent_opportunity.job,
+                submitted_at__gt=job_datetime
+            ).exists()
+            
+            time_since_opportunity = (timezone.now() - job_datetime).total_seconds()
+            two_days_in_seconds = 2 * 24 * 60 * 60  # 2 days in seconds
+            
+            if time_since_opportunity > two_days_in_seconds and not has_experience:
+                return Response(
+                    {
+                        "error": "Please submit your interview experience for the previous job to apply for new opportunities.",
+                        "code": "interview_experience_required",
+                        "job_opportunity_id": recent_opportunity.id,
+                        "job_title": recent_opportunity.title,
+                        "job_date": recent_opportunity.job_date.isoformat(),
+                        "time_elapsed_seconds": time_since_opportunity
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
         application_data = {
             'student': student.id,  
             'job': job.id,
@@ -315,6 +357,14 @@ def apply_for_job(request, job_id):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             
         application = serializer.save()
+
+        # Upload resume to Supabase and store URL
+        try:
+            upload = upload_file(resume_file, f"applications/{application.id}")
+            application.resume_url = upload.get('public_url') or upload.get('signed_url')
+            application.save(update_fields=['resume_url'])
+        except Exception as e:
+            print(f"Supabase upload failed for application {application.id}: {e}")
         
        
         try:
@@ -337,7 +387,8 @@ def apply_for_job(request, job_id):
             "job_title": job.title,
             "status": application.status,
             "applied_at": application.applied_at.isoformat(),
-            "resume_uploaded": True
+            "resume_uploaded": True,
+            "resume_url": application.resume_url
         }, status=status.HTTP_201_CREATED)
         
     except Exception as e:
@@ -495,15 +546,16 @@ def job_applicants(request, job_id):
             if hasattr(app, 'test_schedule') and app.test_schedule and app.test_schedule.is_completed:
                 test_score = app.test_schedule.score
             
-            resume_url = None
-            if app.resume:
-                if hasattr(app.resume, 'url') and app.resume.url:
-                    resume_url = request.build_absolute_uri(app.resume.url)
-                elif isinstance(app.resume, str) and os.path.exists(app.resume):
-                    media_root = settings.MEDIA_ROOT
-                    if app.resume.startswith(media_root):
-                        relative_path = app.resume[len(media_root):].lstrip('/')
-                        resume_url = request.build_absolute_uri(settings.MEDIA_URL + relative_path)
+            resume_url = getattr(app, 'resume_url', None)
+            if not resume_url:
+                if app.resume:
+                    if hasattr(app.resume, 'url') and app.resume.url:
+                        resume_url = request.build_absolute_uri(app.resume.url)
+                    elif isinstance(app.resume, str) and os.path.exists(app.resume):
+                        media_root = settings.MEDIA_ROOT
+                        if app.resume.startswith(media_root):
+                            relative_path = app.resume[len(media_root):].lstrip('/')
+                            resume_url = request.build_absolute_uri(settings.MEDIA_URL + relative_path)
             
             test_schedule = None
             if hasattr(app, 'test_schedule'):
@@ -569,9 +621,43 @@ def upload_resume(request, student_id):
         except Student.DoesNotExist:
             return Response({'error': 'Student not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        student.resume = file
-        student.save()
-        return Response({'status': 'Resume uploaded'})
+        # Upload to Supabase
+        try:
+            # Upload file to Supabase with student-specific path
+            up = upload_file(file, f"students/{student.id}")
+            
+            # Get the public URL (should be accessible without authentication)
+            resume_url = up.get('public_url')
+            
+            # If public URL is not available, try signed URL as fallback
+            if not resume_url:
+                resume_url = up.get('signed_url')
+                
+            if not resume_url:
+                return Response(
+                    {'error': 'Failed to get file URL from storage'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+                
+            # Ensure the URL is a string and clean it up
+            resume_url = str(resume_url).split('?')[0]  # Remove any query parameters
+            
+            # Save the URL to the student record
+            student.resume_url = resume_url
+            student.save(update_fields=['resume_url'])
+            
+            print(f"Resume uploaded successfully to: {resume_url}")
+            
+        except Exception as e:
+            import traceback
+            error_detail = f"{str(e)}\n{traceback.format_exc()}"
+            print(f"Error uploading resume: {error_detail}")
+            return Response(
+                {'error': 'Failed to upload resume to storage', 'detail': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        return Response({'status': 'Resume uploaded', 'resume_url': student.resume_url})
     except Exception as e:
         import traceback
         print(f"Error in upload_resume: {str(e)}\n{traceback.format_exc()}")
@@ -623,6 +709,7 @@ def student_profile(request):
             'email': student.email,
             'phone': student.phone,
             'resume': student.resume.url if getattr(student, 'resume', None) else None,
+            'resume_url': getattr(student, 'resume_url', None),
         })
     except Exception as e:
         return Response({'error': str(e)}, status=500)

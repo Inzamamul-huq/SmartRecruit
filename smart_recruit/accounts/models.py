@@ -9,6 +9,7 @@ class Student(models.Model):
     phone = models.CharField(max_length=15, validators=[phone_validator])
     password = models.CharField(max_length=100)
     resume = models.FileField(upload_to='resumes/', null=True, blank=True)
+    resume_url = models.URLField(null=True, blank=True)
     is_selected = models.BooleanField(null=True)
     allow = models.TextField(null=True)
 
@@ -63,7 +64,8 @@ class JobApplication(models.Model):
     
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     job = models.ForeignKey(Job, on_delete=models.CASCADE)
-    resume = models.FileField(upload_to='job_applications/resumes/')
+    resume = models.FileField(upload_to='job_applications/resumes/', null=True, blank=True)
+    resume_url = models.URLField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='applied')
     applied_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
