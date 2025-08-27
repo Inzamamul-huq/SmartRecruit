@@ -358,31 +358,13 @@ def apply_for_job(request, job_id):
             
         application = serializer.save()
 
-        # Upload resume to Supabase with application-specific path
+        # Upload resume to Supabase and store URL
         try:
-            # Generate a unique filename with timestamp to prevent collisions
-            import time
-            timestamp = int(time.time())
-            filename = f"{timestamp}_{resume_file.name}"
-            
-            # Upload to a structured path in Supabase
-            upload_path = f"resumes/applications/{application.id}/{filename}"
-            upload = upload_file(resume_file, upload_path)
-            
-            # Get the public URL and clean it up
-            resume_url = upload.get('public_url') or upload.get('signed_url')
-            if resume_url:
-                # Ensure the URL is clean (no duplicate 'public' segments)
-                resume_url = resume_url.replace('/object/public/public/', '/object/public/')
-                
-                # Update only the application's resume_url, not the student's
-                application.resume_url = resume_url
-                application.save(update_fields=['resume_url'])
-                
-                print(f"Resume uploaded successfully for application {application.id}")
+            upload = upload_file(resume_file, f"applications/{application.id}")
+            application.resume_url = upload.get('public_url') or upload.get('signed_url')
+            application.save(update_fields=['resume_url'])
         except Exception as e:
             print(f"Supabase upload failed for application {application.id}: {e}")
-            # Continue with the application even if upload fails
         
        
         try:
@@ -564,14 +546,14 @@ def job_applicants(request, job_id):
             if hasattr(app, 'test_schedule') and app.test_schedule and app.test_schedule.is_completed:
                 test_score = app.test_schedule.score
             
-            # First check the application's resume URL (most specific to this application)
+            # Prefer the resume tied to this specific application first
             resume_url = getattr(app, 'resume_url', None)
             
-            # If no resume URL in application, check the student's profile
+            # If no per-application URL, fallback to the student's latest/global resume URL
             if not resume_url:
                 resume_url = getattr(student, 'resume_url', None)
             
-            # If still no resume URL, check the old resume field in the application
+            # If still no resume URL, check the old resume field
             if not resume_url and app.resume:
                 if hasattr(app.resume, 'url') and app.resume.url:
                     resume_url = request.build_absolute_uri(app.resume.url)
