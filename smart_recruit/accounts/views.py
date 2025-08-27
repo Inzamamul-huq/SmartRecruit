@@ -588,7 +588,8 @@ def job_applicants(request, job_id):
                 'is_selected': student.is_selected,
                 'applied_at': app.applied_at.isoformat(),
                 'is_shortlisted': app.status == 'shortlisted',
-                'resume': app.resume_url or (app.resume.url if app.resume else None),
+                'resume': resume_url,
+                'resume_url': resume_url,
                 'test_schedule': test_schedule
             })
         
