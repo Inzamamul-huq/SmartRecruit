@@ -546,16 +546,26 @@ def job_applicants(request, job_id):
             if hasattr(app, 'test_schedule') and app.test_schedule and app.test_schedule.is_completed:
                 test_score = app.test_schedule.score
             
-            resume_url = getattr(app, 'resume_url', None)
+            # First check if we have a resume URL from the student
+            resume_url = getattr(student, 'resume_url', None)
+            
+            # If no resume URL from student, check the application
             if not resume_url:
-                if app.resume:
-                    if hasattr(app.resume, 'url') and app.resume.url:
-                        resume_url = request.build_absolute_uri(app.resume.url)
-                    elif isinstance(app.resume, str) and os.path.exists(app.resume):
+                resume_url = getattr(app, 'resume_url', None)
+            
+            # If still no resume URL, check the old resume field
+            if not resume_url and app.resume:
+                if hasattr(app.resume, 'url') and app.resume.url:
+                    resume_url = request.build_absolute_uri(app.resume.url)
+                elif isinstance(app.resume, str):
+                    if os.path.exists(app.resume):
                         media_root = settings.MEDIA_ROOT
                         if app.resume.startswith(media_root):
                             relative_path = app.resume[len(media_root):].lstrip('/')
                             resume_url = request.build_absolute_uri(settings.MEDIA_URL + relative_path)
+                    # If it's already a URL (like from Supabase), use it as is
+                    elif app.resume.startswith(('http://', 'https://')):
+                        resume_url = app.resume
             
             test_schedule = None
             if hasattr(app, 'test_schedule'):
@@ -596,6 +606,7 @@ def job_applicants(request, job_id):
             'status': 'error',
             'message': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 # ---------- RESUME ----------
 @api_view(['POST'])
