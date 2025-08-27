@@ -567,6 +567,16 @@ def job_applicants(request, job_id):
                     elif app.resume.startswith(('http://', 'https://')):
                         resume_url = app.resume
             
+            # Normalize any malformed Supabase URLs (avoid .../object/public/public/...)
+            if isinstance(resume_url, str) and resume_url:
+                try:
+                    # Remove accidental duplicate 'public/' after '/object/public/'
+                    resume_url = resume_url.replace('/object/public/public/', '/object/public/')
+                    # Remove accidental query params
+                    resume_url = resume_url.split('?')[0]
+                except Exception:
+                    pass
+
             test_schedule = None
             if hasattr(app, 'test_schedule'):
                 test_schedule = {
