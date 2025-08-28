@@ -356,44 +356,30 @@ def apply_for_job(request, job_id):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             
-        # Check if we already have a resume URL from the initial upload
-        existing_resume_url = request.data.get('resume_url')
-        
-        # Save the application first
         application = serializer.save()
-        
-        if existing_resume_url and 'supabase' in existing_resume_url:
-            # Use the existing resume URL from initial upload
-            application.resume_url = existing_resume_url.split('?')[0]  # Remove any query params
+
+        # Check if we already have a resume URL from the upload_resume endpoint
+        if hasattr(student, 'resume_url') and student.resume_url:
+            # Use the existing resume URL from student profile
+            application.resume_url = student.resume_url
             application.save(update_fields=['resume_url'])
         else:
-            # Upload resume to Supabase and store URL (fallback if no URL was provided)
+            # Fallback to uploading the file if no existing URL is found
             try:
                 upload = upload_file(resume_file, f"applications/{application.id}")
-                if upload and (upload.get('public_url') or upload.get('signed_url')):
-                    application.resume_url = upload.get('public_url') or upload.get('signed_url')
-                    if application.resume_url:
-                        # Normalize URL (e.g., remove duplicate 'public' and query params)
-                        try:
-                            application.resume_url = str(application.resume_url).replace('/storage/v1/object/public/public/', '/storage/v1/object/public/').replace('/object/public/public/', '/object/public/').split('?')[0]
-                        except Exception:
-                            pass
-                    application.save(update_fields=['resume_url'])
+                application.resume_url = upload.get('public_url') or upload.get('signed_url')
+                if application.resume_url:
+                    try:
+                        application.resume_url = str(application.resume_url).replace('/storage/v1/object/public/public/', '/storage/v1/object/public/').replace('/object/public/public/', '/object/public/').split('?')[0]
+                    except Exception:
+                        pass
+                application.save(update_fields=['resume_url'])
             except Exception as e:
                 print(f"Supabase upload failed for application {application.id}: {e}")
-                
-                # Fallback to media URL if Supabase upload fails
-                try:
-                    if hasattr(application, 'resume') and hasattr(application.resume, 'url') and application.resume.url:
-                        fallback_url = request.build_absolute_uri(application.resume.url)
-                        try:
-                            fallback_url = str(fallback_url).replace('/storage/v1/object/public/public/', '/storage/v1/object/public/').replace('/object/public/public/', '/object/public/').split('?')[0]
-                        except Exception:
-                            pass
-                        application.resume_url = fallback_url
-                        application.save(update_fields=['resume_url'])
-                except Exception as e:
-                    print(f"Failed to set fallback resume_url for application {application.id}: {e}")
+                return Response(
+                    {"error": "Failed to upload resume"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
         
        
         try:
