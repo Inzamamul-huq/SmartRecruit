@@ -9,6 +9,7 @@ from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from .models import InterviewExperience
 from .serializers import InterviewExperienceSerializer
 from accounts.models import Student, Job
+from smart_recruit.supabase_storage import upload_file
 
 @api_view(['POST'])
 @parser_classes([MultiPartParser, FormParser])
@@ -40,10 +41,20 @@ def post_interview_experience(request):
             'overall_experience': request.data.get('overall_experience'),
         }
         
-        
-        for field in ['aptitude_attachment', 'technical_attachment', 'gd_attachment', 'hr_attachment']:
-            if field in request.FILES:
-                experience_data[field] = request.FILES[field]
+        # Upload any provided attachments to Supabase and store public URLs
+        file_fields = [
+            ('aptitude_attachment', 'aptitude_attachment_url', 'aptitude'),
+            ('technical_attachment', 'technical_attachment_url', 'technical'),
+            ('gd_attachment', 'gd_attachment_url', 'gd'),
+            ('hr_attachment', 'hr_attachment_url', 'hr'),
+        ]
+        for file_field, url_field, segment in file_fields:
+            file_obj = request.FILES.get(file_field)
+            if file_obj:
+                up = upload_file(file_obj, f"interview_experiences/{student.id}/{segment}")
+                public_url = up.get('public_url') or up.get('signed_url')
+                if public_url:
+                    experience_data[url_field] = str(public_url).split('?')[0]
         
         serializer = InterviewExperienceSerializer(data=experience_data)
         if serializer.is_valid():
@@ -80,17 +91,31 @@ def get_experience_detail(request, pk):
 def update_experience(request, pk):
     experience = get_object_or_404(InterviewExperience, pk=pk)
     
-    if request.user != experience.student.user:
+    # Compare by email since Student is not a Django auth User
+    if (getattr(request.user, 'email', None) or getattr(request.user, 'username', None)) != experience.student.email:
         return Response(
             {"error": "You do not have permission to perform this action."},
             status=status.HTTP_403_FORBIDDEN
         )
     
-    serializer = InterviewExperienceSerializer(
-        experience, 
-        data=request.data, 
-        partial=request.method == 'PATCH'
-    )
+    data = request.data.copy()
+    # Handle new attachment uploads and set URL fields
+    file_fields = [
+        ('aptitude_attachment', 'aptitude_attachment_url', 'aptitude'),
+        ('technical_attachment', 'technical_attachment_url', 'technical'),
+        ('gd_attachment', 'gd_attachment_url', 'gd'),
+        ('hr_attachment', 'hr_attachment_url', 'hr'),
+    ]
+    student_id = experience.student.id
+    for file_field, url_field, segment in file_fields:
+        file_obj = request.FILES.get(file_field)
+        if file_obj:
+            up = upload_file(file_obj, f"interview_experiences/{student_id}/{segment}")
+            public_url = up.get('public_url') or up.get('signed_url')
+            if public_url:
+                data[url_field] = str(public_url).split('?')[0]
+    
+    serializer = InterviewExperienceSerializer(experience, data=data, partial=request.method == 'PATCH')
     
     if serializer.is_valid():
         serializer.save()
@@ -102,7 +127,7 @@ def update_experience(request, pk):
 def delete_experience(request, pk):
     experience = get_object_or_404(InterviewExperience, pk=pk)
     
-    if request.user != experience.student.user:
+    if (getattr(request.user, 'email', None) or getattr(request.user, 'username', None)) != experience.student.email:
         return Response(
             {"error": "You do not have permission to perform this action."},
             status=status.HTTP_403_FORBIDDEN
