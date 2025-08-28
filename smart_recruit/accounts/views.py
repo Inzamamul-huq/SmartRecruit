@@ -360,31 +360,65 @@ def apply_for_job(request, job_id):
 
         # Upload resume to Supabase and store URL
         try:
-            upload = upload_file(resume_file, f"applications/{application.id}")
-            application.resume_url = upload.get('public_url') or upload.get('signed_url')
-            if application.resume_url:
-                # Normalize URL (e.g., remove duplicate 'public' and query params)
-                try:
-                    application.resume_url = str(application.resume_url).replace('/storage/v1/object/public/public/', '/storage/v1/object/public/').replace('/object/public/public/', '/object/public/').split('?')[0]
-                except Exception:
-                    pass
-            application.save(update_fields=['resume_url'])
+            # First save the file to get application ID
+            application.save()
+            
+            # Generate a unique filename for this application
+            file_extension = os.path.splitext(resume_file.name)[1]
+            unique_filename = f"{application.id}{file_extension}"
+            
+            # Upload to applications folder with unique filename
+            upload = upload_file(
+                file=resume_file, 
+                path=f"applications/{application.id}/{unique_filename}"
+            )
+            
+            # Get the public URL and normalize it
+            if upload.get('public_url') or upload.get('signed_url'):
+                resume_url = (upload.get('public_url') or upload.get('signed_url'))
+                # Normalize URL (remove duplicate 'public' and query params)
+                resume_url = str(resume_url).replace(
+                    '/storage/v1/object/public/public/', 
+                    '/storage/v1/object/public/'
+                ).replace(
+                    '/object/public/public/', 
+                    '/object/public/'
+                ).split('?')[0]
+                
+                # Ensure the URL points to the correct path
+                if 'applications' not in resume_url:
+                    # If the path is malformed, construct it manually
+                    bucket_name = 'resumes'  # Replace with your actual bucket name
+                    resume_url = f"https://{settings.SUPABASE_PROJECT_ID}.supabase.co/storage/v1/object/public/{bucket_name}/applications/{application.id}/{unique_filename}"
+                
+                application.resume_url = resume_url
+                application.save(update_fields=['resume_url'])
+            
         except Exception as e:
             print(f"Supabase upload failed for application {application.id}: {e}")
-
-        # Ensure application.resume_url is set; fallback to media URL if needed
-        if not getattr(application, 'resume_url', None):
+            
+            # Fallback: If Supabase upload fails, use the media file URL
             try:
-                if hasattr(application, 'resume') and hasattr(application.resume, 'url') and application.resume.url:
+                if hasattr(application, 'resume') and application.resume:
                     fallback_url = request.build_absolute_uri(application.resume.url)
-                    try:
-                        fallback_url = str(fallback_url).replace('/storage/v1/object/public/public/', '/storage/v1/object/public/').replace('/object/public/public/', '/object/public/').split('?')[0]
-                    except Exception:
-                        pass
+                    # Normalize the URL
+                    fallback_url = str(fallback_url).replace(
+                        '/storage/v1/object/public/public/', 
+                        '/storage/v1/object/public/'
+                    ).replace(
+                        '/object/public/public/', 
+                        '/object/public/'
+                    ).split('?')[0]
+                    
                     application.resume_url = fallback_url
                     application.save(update_fields=['resume_url'])
             except Exception as e:
-                print(f"Failed to set fallback resume_url for application {application.id}: {e}")
+                print(f"Failed to set fallback resume_url: {e}")
+            
+            return Response(
+                {"error": "Failed to process resume. Please try again."}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
         
        
         try:
