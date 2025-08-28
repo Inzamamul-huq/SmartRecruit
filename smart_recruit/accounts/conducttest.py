@@ -584,6 +584,7 @@ def submit_test_answers(request, test_schedule_id):
                 status=status.HTTP_403_FORBIDDEN
             )
 
+        # Get test timing information
         test_start_time = test_schedule.test_time
         if not test_schedule.duration_minutes:
             test_schedule.duration_minutes = 60  # Default to 60 minutes if not set
@@ -592,16 +593,23 @@ def submit_test_answers(request, test_schedule_id):
         test_end_time = test_start_time + timedelta(minutes=test_schedule.duration_minutes)
         current_time = django_timezone.now()
         
+        # Ensure timezone awareness
         if test_start_time.tzinfo is None:
             test_start_time = django_timezone.make_aware(test_start_time)
         if test_end_time.tzinfo is None:
             test_end_time = django_timezone.make_aware(test_end_time)
         
-        
-        
+        # Check if test has started
+        if current_time < test_start_time:
+            message = f'Test has not started yet. The test will be available on {test_start_time.strftime("%Y-%m-%d %H:%M %Z")}.'
+            return Response(
+                {'status': 'error', 'message': message}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+            
+        # Check if test submission window has ended
         if current_time > test_end_time:
             message = f'Test submission window has ended. The test ended on {test_end_time.strftime("%Y-%m-%d %H:%M %Z")}.'
-            
             return Response(
                 {'status': 'error', 'message': message}, 
                 status=status.HTTP_403_FORBIDDEN
@@ -614,6 +622,13 @@ def submit_test_answers(request, test_schedule_id):
             error_msg = 'Answers should be a list of question-answer pairs'
             return Response(
                 {'status': 'error', 'message': error_msg},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        # Check if test was already submitted
+        if test_schedule.is_completed:
+            return Response(
+                {'status': 'error', 'message': 'Test has already been submitted'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
