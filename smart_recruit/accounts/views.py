@@ -358,28 +358,15 @@ def apply_for_job(request, job_id):
             
         application = serializer.save()
 
-        # Check if we already have a resume URL from the upload_resume endpoint
-        if hasattr(student, 'resume_url') and student.resume_url:
-            # Use the existing resume URL from student profile
-            application.resume_url = student.resume_url
-            application.save(update_fields=['resume_url'])
-        else:
-            # Fallback to uploading the file if no existing URL is found
-            try:
-                upload = upload_file(resume_file, f"applications/{application.id}")
-                application.resume_url = upload.get('public_url') or upload.get('signed_url')
-                if application.resume_url:
-                    try:
-                        application.resume_url = str(application.resume_url).replace('/storage/v1/object/public/public/', '/storage/v1/object/public/').replace('/object/public/public/', '/object/public/').split('?')[0]
-                    except Exception:
-                        pass
-                application.save(update_fields=['resume_url'])
-            except Exception as e:
-                print(f"Supabase upload failed for application {application.id}: {e}")
-                return Response(
-                    {"error": "Failed to upload resume"},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
+        # Use the existing resume URL from student profile
+        if not hasattr(student, 'resume_url') or not student.resume_url:
+            return Response(
+                {"error": "No resume found. Please upload your resume before applying."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        application.resume_url = student.resume_url
+        application.save(update_fields=['resume_url'])
         
        
         try:
