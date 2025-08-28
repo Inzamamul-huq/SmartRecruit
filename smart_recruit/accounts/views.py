@@ -362,9 +362,29 @@ def apply_for_job(request, job_id):
         try:
             upload = upload_file(resume_file, f"applications/{application.id}")
             application.resume_url = upload.get('public_url') or upload.get('signed_url')
+            if application.resume_url:
+                # Normalize URL (e.g., remove duplicate 'public' and query params)
+                try:
+                    application.resume_url = str(application.resume_url).replace('/storage/v1/object/public/public/', '/storage/v1/object/public/').replace('/object/public/public/', '/object/public/').split('?')[0]
+                except Exception:
+                    pass
             application.save(update_fields=['resume_url'])
         except Exception as e:
             print(f"Supabase upload failed for application {application.id}: {e}")
+
+        # Ensure application.resume_url is set; fallback to media URL if needed
+        if not getattr(application, 'resume_url', None):
+            try:
+                if hasattr(application, 'resume') and hasattr(application.resume, 'url') and application.resume.url:
+                    fallback_url = request.build_absolute_uri(application.resume.url)
+                    try:
+                        fallback_url = str(fallback_url).replace('/storage/v1/object/public/public/', '/storage/v1/object/public/').replace('/object/public/public/', '/object/public/').split('?')[0]
+                    except Exception:
+                        pass
+                    application.resume_url = fallback_url
+                    application.save(update_fields=['resume_url'])
+            except Exception as e:
+                print(f"Failed to set fallback resume_url for application {application.id}: {e}")
         
        
         try:
@@ -546,14 +566,10 @@ def job_applicants(request, job_id):
             if hasattr(app, 'test_schedule') and app.test_schedule and app.test_schedule.is_completed:
                 test_score = app.test_schedule.score
             
-            # Prefer the resume tied to this specific application first
+            # Use only the resume tied to this specific application
             resume_url = getattr(app, 'resume_url', None)
             
-            # If no per-application URL, fallback to the student's latest/global resume URL
-            if not resume_url:
-                resume_url = getattr(student, 'resume_url', None)
-            
-            # If still no resume URL, check the old resume field
+            # If no per-application URL, check the old resume field on the application
             if not resume_url and app.resume:
                 if hasattr(app.resume, 'url') and app.resume.url:
                     resume_url = request.build_absolute_uri(app.resume.url)
@@ -567,12 +583,12 @@ def job_applicants(request, job_id):
                     elif app.resume.startswith(('http://', 'https://')):
                         resume_url = app.resume
             
-            # Normalize any malformed Supabase URLs (avoid .../object/public/public/...)
+           
             if isinstance(resume_url, str) and resume_url:
                 try:
-                    # Remove accidental duplicate 'public/' after '/object/public/'
+                   
                     resume_url = resume_url.replace('/object/public/public/', '/object/public/')
-                    # Remove accidental query params
+                    
                     resume_url = resume_url.split('?')[0]
                 except Exception:
                     pass
