@@ -65,7 +65,6 @@ class TestScheduleSerializer(serializers.ModelSerializer):
         read_only_fields = ['created_at', 'updated_at']
     
     def validate_application(self, value):
-        # Check if a test schedule already exists for this application
         if TestSchedule.objects.filter(application=value).exists():
             raise serializers.ValidationError("A test schedule already exists for this application.")
         return value

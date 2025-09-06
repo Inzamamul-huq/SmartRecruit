@@ -46,7 +46,6 @@ urlpatterns = [
    
    
    
-    path('send-job-details/', conducttest.send_job_details, name='send-job-details'),
     path('job-opportunities/', conducttest.send_job_opportunities, name='send-job-opportunities'),
     path('job-opportunities/student/', conducttest.get_opportunities_by_student, name='get-opportunities-by-student'),
     

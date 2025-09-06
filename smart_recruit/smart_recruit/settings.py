@@ -36,7 +36,7 @@ ALLOWED_HOSTS = [
         'smartrecruit-9ofm.onrender.com', 
         'smartjobangular.vercel.app'
     ]
-  # For production, specify your domain like: ['your-render-app.onrender.com']
+
 
 
 # Application definition

@@ -330,7 +330,7 @@ def apply_for_job(request, job_id):
             ).exists()
             
             time_since_opportunity = (timezone.now() - job_datetime).total_seconds()
-            two_days_in_seconds = 2 * 24 * 60 * 60  # 2 days in seconds
+            two_days_in_seconds = 2 * 24 * 60 * 60  
             
             if time_since_opportunity > two_days_in_seconds and not has_experience:
                 return Response(
@@ -358,7 +358,7 @@ def apply_for_job(request, job_id):
             
         application = serializer.save()
 
-        # Use the existing resume URL from student profile
+       
         if not hasattr(student, 'resume_url') or not student.resume_url:
             return Response(
                 {"error": "No resume found. Please upload your resume before applying."},
@@ -548,10 +548,10 @@ def job_applicants(request, job_id):
             if hasattr(app, 'test_schedule') and app.test_schedule and app.test_schedule.is_completed:
                 test_score = app.test_schedule.score
             
-            # Use only the resume tied to this specific application
+            
             resume_url = getattr(app, 'resume_url', None)
             
-            # If no per-application URL, check the old resume field on the application
+            
             if not resume_url and app.resume:
                 if hasattr(app.resume, 'url') and app.resume.url:
                     resume_url = request.build_absolute_uri(app.resume.url)
@@ -561,7 +561,7 @@ def job_applicants(request, job_id):
                         if app.resume.startswith(media_root):
                             relative_path = app.resume[len(media_root):].lstrip('/')
                             resume_url = request.build_absolute_uri(settings.MEDIA_URL + relative_path)
-                    # If it's already a URL (like from Supabase), use it as is
+                  
                     elif app.resume.startswith(('http://', 'https://')):
                         resume_url = app.resume
             
@@ -642,15 +642,15 @@ def upload_resume(request, student_id):
         except Student.DoesNotExist:
             return Response({'error': 'Student not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        # Upload to Supabase
+        
         try:
-            # Upload file to Supabase with student-specific path
+            
             up = upload_file(file, f"students/{student.id}")
             
-            # Get the public URL (should be accessible without authentication)
+           
             resume_url = up.get('public_url')
             
-            # If public URL is not available, try signed URL as fallback
+          
             if not resume_url:
                 resume_url = up.get('signed_url')
                 
@@ -660,10 +660,10 @@ def upload_resume(request, student_id):
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
                 
-            # Ensure the URL is a string and clean it up
-            resume_url = str(resume_url).split('?')[0]  # Remove any query parameters
+         
+            resume_url = str(resume_url).split('?')[0]  
             
-            # Save the URL to the student record
+            
             student.resume_url = resume_url
             student.save(update_fields=['resume_url'])
             
@@ -932,7 +932,7 @@ def schedule_test(request):
     try:
         application_id = request.data.get('application_id')
         test_time = request.data.get('test_time')
-        duration_minutes = request.data.get('duration_minutes', 60)  # Default to 60 minutes if not provided
+        duration_minutes = request.data.get('duration_minutes', 60)  
         message = request.data.get('message', '')
         
         if not application_id or not test_time:

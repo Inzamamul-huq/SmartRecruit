@@ -17,10 +17,6 @@ logger = logging.getLogger(__name__)
 from .models import Job, JobOpportunity
 from .serializers import *
 from django.conf import settings
-from django.core.mail import send_mail
-from django.template.loader import render_to_string
-from django.utils.html import strip_tags
-from django.db.models import Q
 
 
 @api_view(['POST'])
@@ -587,7 +583,7 @@ def submit_test_answers(request, test_schedule_id):
 
         test_start_time = test_schedule.test_time
         if not test_schedule.duration_minutes:
-            test_schedule.duration_minutes = 60  # Default to 60 minutes if not set
+            test_schedule.duration_minutes = 60 
             test_schedule.save()
             
         test_end_time = test_start_time + timedelta(minutes=test_schedule.duration_minutes)

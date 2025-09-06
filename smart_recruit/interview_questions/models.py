@@ -6,7 +6,7 @@ def interview_upload_path(instance, filename):
 
 class InterviewExperience(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
-    student_email = models.EmailField(default='unknown@example.com')  # Default for existing records
+    student_email = models.EmailField(default='unknown@example.com')  
     job = models.ForeignKey('accounts.Job', on_delete=models.CASCADE, null=True, blank=True)
     company_name = models.CharField(max_length=200)
     division_name = models.CharField(max_length=200)

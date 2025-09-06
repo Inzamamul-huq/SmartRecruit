@@ -41,7 +41,7 @@ def post_interview_experience(request):
             'overall_experience': request.data.get('overall_experience'),
         }
         
-        # Upload any provided attachments to Supabase and store public URLs
+        
         file_fields = [
             ('aptitude_attachment', 'aptitude_attachment_url', 'aptitude'),
             ('technical_attachment', 'technical_attachment_url', 'technical'),
@@ -91,7 +91,7 @@ def get_experience_detail(request, pk):
 def update_experience(request, pk):
     experience = get_object_or_404(InterviewExperience, pk=pk)
     
-    # Compare by email since Student is not a Django auth User
+   
     if (getattr(request.user, 'email', None) or getattr(request.user, 'username', None)) != experience.student.email:
         return Response(
             {"error": "You do not have permission to perform this action."},
@@ -99,7 +99,7 @@ def update_experience(request, pk):
         )
     
     data = request.data.copy()
-    # Handle new attachment uploads and set URL fields
+    
     file_fields = [
         ('aptitude_attachment', 'aptitude_attachment_url', 'aptitude'),
         ('technical_attachment', 'technical_attachment_url', 'technical'),

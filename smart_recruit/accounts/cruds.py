@@ -71,9 +71,9 @@ def job_operations(request, job_id):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             
         elif request.method == 'DELETE':
-            # Delete related applications first
+           
             JobApplication.objects.filter(job=job).delete()
-            # Then delete the job
+            
             job.delete()
             return Response({
                 'status': 'success',
