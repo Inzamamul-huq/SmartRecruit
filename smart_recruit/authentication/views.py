@@ -29,12 +29,6 @@ class LogoutView(APIView):
         except Exception as e:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-class UserProfileView(APIView):
-    permission_classes = (IsAuthenticated,)
-
-    def get(self, request):
-        serializer = UserSerializer(request.user)
-        return Response(serializer.data)
 
 
 def _get_or_create_auth_user(email: str, is_staff: bool) -> DjangoUser:

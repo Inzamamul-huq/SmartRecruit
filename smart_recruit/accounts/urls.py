@@ -5,8 +5,6 @@ from . import cruds
 
 urlpatterns = [
     
-    path('admin/signup/', views.admin_signup, name='admin_signup'),
-    path('admin/toggle-approval/<int:user_id>/', views.toggle_user_approval, name='toggle-user-approval'),
     path('student/signup/', views.student_signup),
     path('viewuser/', views.student_view),
     path('student/send-otp/', views.send_otp),
@@ -24,6 +22,8 @@ urlpatterns = [
 
 
     #admin related URLs
+    path('admin/signup/', views.admin_signup, name='admin_signup'),
+    path('admin/toggle-approval/<int:user_id>/', views.toggle_user_approval, name='toggle-user-approval'),
     path('admin/post-job/', views.post_job),
     path('jobs/', views.job_list),
     path('admin/change-password/', views.admin_change_password, name='admin-change-password'),
@@ -31,8 +31,10 @@ urlpatterns = [
     path('jobs/<int:job_id>/', views.job_detail, name='job-detail'),
     path('student/update-selection/<int:student_id>/', views.update_selection_status, name='update-selection'),
    
-   
+   #create question
     path('createquestion/',conducttest.create_mcq_question),
+
+#get question
     path('getquestions/job/<int:job_id>/', conducttest.get_test_questions, name='get-questions-by-job'),
     path('getquestions/', conducttest.get_test_questions, name='get-all-questions'),
     path('getquestions/schedule/<int:test_schedule_id>/', conducttest.get_test_questions, name='get-questions-by-schedule'),
@@ -44,7 +46,7 @@ urlpatterns = [
     path('student/active-tests/<str:student_email>/', views.get_active_test_schedule, name='student-active-tests'),
     path('test/results/<int:test_schedule_id>/', views.get_test_results, name='test-results'),
    
-   
+   #send and get job opportunities
    
     path('job-opportunities/', conducttest.send_job_opportunities, name='send-job-opportunities'),
     path('job-opportunities/student/', conducttest.get_opportunities_by_student, name='get-opportunities-by-student'),
